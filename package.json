@@ -1,0 +1,13 @@
+{
+  "name": "dnsgit_notify",
+  "version": "0.0.1",
+  "private": "true",
+  "author": "Tim Zhang",
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "request": "*",
+    "mongoose": "*"
+  }
+}
