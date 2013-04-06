@@ -11,8 +11,9 @@ exports.getUser = function(id, callback) {
 
 // test
 
-var testUser = exprts.getUser(586691);
-console.log(testUser);
-
+//var testUser = exports.getUser(586691, function(err, doc) {
+//  console.log(doc);
+//  process.exit();
+//});
 
 
