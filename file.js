@@ -26,14 +26,20 @@ var process_domain = function(id) {
     var domains = _.filter(files, function(f) {
       return f.charAt(0) !== ".";
     });
-    console.log(domains);
+    _.each(domains, function() {
+    
+    });
   })
 }
 
-var process_record = function(id, domain_name) {
+var get_records = function(id, domain_name) {
   var filename = path(id) + "/" + domain_name;
   var records = fs.readFileSync(filename, 'utf8');
-  console.log(records);
+  return records;
+}
+
+var analysis = function(line) {
+  
 }
 
 
@@ -41,4 +47,6 @@ var process_record = function(id, domain_name) {
 
 //process_domain(123);
 
-process_record(123, 'dnsgit.com.lua');
+//process_record(123, 'dnsgit.com.lua');
+
+vi 
