@@ -1,6 +1,6 @@
 var request = require('request')
+  , _ = require('underscore')
   , querystring = require('querystring')
-  , _ = require('./underscore')
   , util = require('./util')
   , db = require('./db');
 

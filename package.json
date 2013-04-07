@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "request": "*",
-    "mongoose": "*"
+    "mongoose": "*",
+    "underscore": "*",
+    "director": "*"
   }
 }

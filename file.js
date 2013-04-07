@@ -1,6 +1,6 @@
 var fs = require('fs');
+var _ = require('underscore');
 var git = require('./git');
-var _ = require('./underscore');
 
 var base_dir = git.base_dir;
 
@@ -38,8 +38,48 @@ var get_records = function(id, domain_name) {
   return records;
 }
 
-var analysis = function(line) {
-  
+var analyse = function(line) {
+  line = line.toUpperCase().replace(/['"]/g, '');
+  var p_start = line.indexOf("(");
+  var p_end = line.indexOf(")");
+  var type = line.slice(0, p_start);
+  var infos = line.slice(p_start + 1, p_end).split(',');
+  infos = _.map(infos, function(i) {
+    return i.trim();
+  });
+  return [type, infos] 
+}
+
+var gen_record = function(type, infos) {
+  var record = {};
+  var model = ['sub_domain', 'value', 'record_type', 'ttl', 'mx'];
+  record.type = type;
+
+  _.each(model, function(m, i) {
+    infos[i] && (record[m] = infos[i]);
+  });
+  return record;
+
+
+  //record.record_type = type;
+  //record.sub_domain = infos[0];
+  //record.value = infos[1];
+  //if (infos.length < 3 ) {
+  //  record.record_line = '默认';
+  //  return record;
+  //} else {
+  //  record.record_line = infos[2];
+  //}
+  //switch(type) {
+  //  case 'a': 
+  //    break;
+  //  case 'cname': 
+  //    break;
+  //  case 'mx': 
+  //    break;
+  //  case 'ns': 
+  //    break;
+  //} 
 }
 
 
@@ -49,4 +89,10 @@ var analysis = function(line) {
 
 //process_record(123, 'dnsgit.com.lua');
 
-vi 
+var lua = 'a("mail", "1.2.3.4 ", "默认" , "120")';
+var ar = analyse(lua);
+var record = gen_record.apply(this, ar);
+console.log(ar);
+console.log(record);
+
+

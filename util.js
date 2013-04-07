@@ -1,5 +1,5 @@
 var querystring = require('querystring')
-  , _ = require('./underscore');
+  , _ = require('underscore');
 
 var getUrl = function(action, type) {
   var baseUrl = 'https://dnsapi.cn/';
@@ -44,6 +44,10 @@ var getParam = function(action, type, form) {
   };  
   return params;
 };
+
+var valid_record = function(record) {
+  return (record && typeof record === "object" && _.size(record) > 2);
+}
 
 exports.getForm = getForm;
 exports.getParam = getParam;
