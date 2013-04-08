@@ -1,4 +1,5 @@
-var querystring = require('querystring')
+var querystring = require('querystring'),
+  , S = require('string');
   , _ = require('underscore');
 
 var getUrl = function(action, type) {
