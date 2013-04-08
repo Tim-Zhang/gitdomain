@@ -12,7 +12,6 @@ exports.create = function(domain_name, access_token, callback) {
     domain: domain_name
   });
   var params = util.getParam(action, type, form);
-  console.log(params);
   request(params, callback);
 };
 exports.remove = function(domain_id, access_token, callback) {
@@ -46,17 +45,17 @@ exports.list = function(access_token, callback) {
 // test 
 
 
-var at = '2e6db7279eaf7eb65b8eae2fb017bfaf60e4ef84';
-var tc = function(err, res, body) {
-  console.log(body);
-  process.exit();
-};
+//var at = '2e6db7279eaf7eb65b8eae2fb017bfaf60e4ef84';
+//var tc = function(err, res, body) {
+//  console.log(body);
+//  process.exit();
+//};
 
 //exports.list(at, tc);
 
 //exports.create('woaiderenyeaiwo.com', at, tc);
 
-exports.info('woaiderenyeaiwo.com', at, tc);
+//exports.info('woaiderenyeaiwo.com', at, tc);
 
 //exports.remove(3201407, at, tc);
 

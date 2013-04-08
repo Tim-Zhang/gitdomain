@@ -1,6 +1,6 @@
 var request = require('request')
   , querystring = require('querystring')
-  , _ = require('./underscore')
+  , _ = require('underscore')
   , util = require('./util')
   , db = require('./db');
 
@@ -50,23 +50,23 @@ exports.list = function(domain_id, access_token, callback) {
 // test 
 
 
-var at = '2e6db7279eaf7eb65b8eae2fb017bfaf60e4ef84';
-var tc = function(err, res, body) {
-  console.log(body);
-  process.exit();
-};
-
-var record_id = 21863470;
-var domain_id = 3201512;
-
-var record = {
-  domain_id: domain_id,
-  record_id: record_id,
-  sub_domain: 'test2',
-  record_type: 'A',
-  record_line: '默认',
-  value: '9.9.9.99'
-};
+//var at = '2e6db7279eaf7eb65b8eae2fb017bfaf60e4ef84';
+//var tc = function(err, res, body) {
+//  console.log(body);
+//  process.exit();
+//};
+//
+//var record_id = 21863470;
+//var domain_id = 3201512;
+//
+//var record = {
+//  domain_id: domain_id,
+//  record_id: record_id,
+//  sub_domain: 'test2',
+//  record_type: 'A',
+//  record_line: '默认',
+//  value: '9.9.9.99'
+//};
 
 //exports.list(3201512, at, tc);
 

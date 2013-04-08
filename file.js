@@ -1,4 +1,5 @@
 var fs = require('fs');
+fs.exists = fs.exists || require('path').exists;
 var _ = require('underscore');
 var git = require('./git');
 
@@ -14,6 +15,7 @@ var gitdir_exists = function(id, callback) {
 var updatefile = function(id, rep, callback) {
   gitdir_exists(id, function(exists) {
     if (exists) {
+      console.log('exists');
       git.gitpull(id, callback);
     } else {
       git.gitclone(id, rep, callback);
@@ -21,21 +23,28 @@ var updatefile = function(id, rep, callback) {
   });
 }
 
-var process_domain = function(id) {
+var process_domain = function(id, callback) {
   fs.readdir(path(id), function(err, files) {
     var domains = _.filter(files, function(f) {
       return f.charAt(0) !== ".";
     });
-    _.each(domains, function() {
-    
-    });
+    callback(domains);
   })
 }
 
-var get_records = function(id, domain_name) {
+var get_records = function(id, domain_name, callback) {
   var filename = path(id) + "/" + domain_name;
-  var records = fs.readFileSync(filename, 'utf8');
-  return records;
+  var records = fs.readFile(filename, 'utf8', function(err, data) {
+    if (!err) {
+      var records = data.split("\n"); 
+      records = _.filter(records, function(r) {
+        return r.trim();
+      });
+      callback(records);
+    } else {
+      console.log(err); 
+    } 
+  } );
 }
 
 var analyse = function(line) {
@@ -60,27 +69,17 @@ var gen_record = function(type, infos) {
   });
   return record;
 
-
-  //record.record_type = type;
-  //record.sub_domain = infos[0];
-  //record.value = infos[1];
-  //if (infos.length < 3 ) {
-  //  record.record_line = '默认';
-  //  return record;
-  //} else {
-  //  record.record_line = infos[2];
-  //}
-  //switch(type) {
-  //  case 'a': 
-  //    break;
-  //  case 'cname': 
-  //    break;
-  //  case 'mx': 
-  //    break;
-  //  case 'ns': 
-  //    break;
-  //} 
 }
+
+// exports
+exports.updatefile = updatefile;
+exports.process_domain = process_domain;
+exports.get_records = get_records;
+exports.analyse = analyse;
+exports.gen_record = gen_record;
+
+
+
 
 
 //test 
@@ -89,10 +88,13 @@ var gen_record = function(type, infos) {
 
 //process_record(123, 'dnsgit.com.lua');
 
-var lua = 'a("mail", "1.2.3.4 ", "默认" , "120")';
-var ar = analyse(lua);
-var record = gen_record.apply(this, ar);
-console.log(ar);
-console.log(record);
+//var lua = 'a("mail", "1.2.3.4 ", "默认" , "120")';
+//var ar = analyse(lua);
+//var record = gen_record.apply(this, ar);
+//console.log(ar);
+//console.log(record);
 
+//gitdir_exists(123, function() {
+//  console.log('has callback');
+//});
 
