@@ -3,23 +3,32 @@ var _ = require('underscore')
   , domain = require('./domain') 
   , record = require('./record');
 
-var main = function(id, rep) {
+var domain_handle = function(id, access_token, callback) {
+  file.process_domain(id, function(domains) {
+    domain.list(access_token, function(err, res, body) {
+      body = JSON.parse(body);
+      var domains_online = _.values(_.pick(body, 'name'));
+      console.log(domains_online);
+      var less = _.difference(domains, domains_online);
+    });
+  
+  });
+
+};
+var record_handle = function(id) {
+
+};
+var main = function(id, rep, access_token) {
   file.updatefile(id, rep, function() {
     console.log('update success');
-    file.process_domain(id, function(domains) {
-      _.each(domains, function(d) {
-        file.get_records(id, d, function(records) {
-          console.log(records);
-          _.each(records, function(r) {
-            console.log(file.analyse(r));
-          });
-        });
-      });
-    });
+    domain_handle(id, access_token);
+
   });
 };
 
 //test
 //
 
-main(123, 'https://github.com/zewenzhang/dnsgit-test.git');
+var at = 'a411fef1b7dc48cd755a6a1dfe036c10bd437f9c';
+main(123, 'https://github.com/zewenzhang/dnsgit-test.git', at);
+

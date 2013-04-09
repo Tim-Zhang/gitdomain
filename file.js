@@ -15,10 +15,9 @@ var gitdir_exists = function(id, callback) {
 var updatefile = function(id, rep, callback) {
   gitdir_exists(id, function(exists) {
     if (exists) {
-      console.log('exists');
       git.gitpull(id, callback);
     } else {
-      git.gitclone(id, rep, callback);
+      git.gitclone(rep, id, callback);
     }
   });
 }

@@ -10,7 +10,20 @@ exports.gitclone = function(addr, id, callback) {
     if (code === 0) {
       callback();
     } else {
-      console.log('git pull error code:' + code);
+      console.log('git clone error code:' + code);
+    }
+  });
+
+  gitclone.stderr.on('data', function (data) {
+    console.log('stderr: ' + data);
+  });
+  gitclone.on('exit', function (code) {
+      console.log('gitclone done');
+    if (code === 0) {
+      console.log('git clone done');
+      callback();
+    } else {
+      console.log('git clone error code:' + code);
     }
   });
 }
