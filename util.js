@@ -50,7 +50,17 @@ var valid_record = function(record) {
   return (record && typeof record === "object" && _.size(record) > 2);
 }
 
+var bodyParser = function(body, key) {
+  body = JSON.parse(body);
+  if (body.status && body.status.code == 1) {
+    return body[key];
+  } else {
+    return -1;
+  }
+}
+
 exports.getForm = getForm;
 exports.getParam = getParam;
+exports.bodyParser = bodyParser;
 
 

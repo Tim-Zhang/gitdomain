@@ -70,6 +70,7 @@ var gen_record = function(type, infos) {
 
 }
 
+
 // exports
 exports.updatefile = updatefile;
 exports.process_domain = process_domain;
