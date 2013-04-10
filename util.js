@@ -52,15 +52,45 @@ var valid_record = function(record) {
 
 var bodyParser = function(body, key) {
   body = JSON.parse(body);
-  if (body.status && body.status.code == 1) {
+  console.log(body);
+  if (body.status && (body.status.code == 1 || body.status.code == 10)) {
     return body[key];
   } else {
     return -1;
   }
 }
 
+var uniqRecord = function(r1, r2) {
+  if (!r1 || !r2) return;
+  var model = ['sub_domain', 'value', 'record_type', 'ttl', 'mx'];
+  //priority
+  r1 = _.sortBy(r1, function(r) {
+    return _.size(r);
+  })
+
+  var exists = [];
+  for (var i=0; i<r1.length; i++) {
+    for (var j=0; j<r2.length; j++) {
+      var rr1 = r1[i];
+      var rr2 = r2[j];
+      var is_equal = _.every(model, function(m) {
+        return !(rr1[m] && rr1[m] != rr2[m]); 
+      });
+      if (is_equal) {
+        r1 = _.without(r1, rr1);
+        r2 = _.without(r2, rr2);
+      }
+    }
+  }
+  
+  
+
+
+}
+
 exports.getForm = getForm;
 exports.getParam = getParam;
 exports.bodyParser = bodyParser;
+exports.uniqRecord = uniqRecord;
 
 
