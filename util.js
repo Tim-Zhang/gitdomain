@@ -52,8 +52,17 @@ var valid_record = function(record) {
 
 var bodyParser = function(body, key) {
   body = JSON.parse(body);
-  console.log(body);
-  if (body.status && (body.status.code == 1 || body.status.code == 10)) {
+  if (body.error) {
+    throw body;
+  }
+  var success, success_pool;
+  if (key == 'domains') {
+    success_pool = ['1', '9'];
+  } else if (key == 'records') {
+    success_pool = ['1', '10'];
+  }
+  success = body.status && _.contains(success_pool, body.status.code); 
+  if (success) {
     return body[key];
   } else {
     return -1;
@@ -62,7 +71,13 @@ var bodyParser = function(body, key) {
 
 var uniqRecord = function(r1, r2) {
   if (!r1 || !r2) return;
-  var model = ['sub_domain', 'value', 'record_type', 'ttl', 'mx'];
+  var model = {
+    sub_domain: 'name',
+    value: 'value',
+    record_type: 'type',
+    ttl: 'ttl',
+    mx: 'mx'
+  }
   //priority
   r1 = _.sortBy(r1, function(r) {
     return _.size(r);
@@ -73,8 +88,8 @@ var uniqRecord = function(r1, r2) {
     for (var j=0; j<r2.length; j++) {
       var rr1 = r1[i];
       var rr2 = r2[j];
-      var is_equal = _.every(model, function(m) {
-        return !(rr1[m] && rr1[m] != rr2[m]); 
+      var is_equal = _.every(_.keys(model), function(m) {
+        return !(rr1[m] && rr1[m] != rr2[model.m]); 
       });
       if (is_equal) {
         r1 = _.without(r1, rr1);
@@ -83,14 +98,20 @@ var uniqRecord = function(r1, r2) {
     }
   }
   
-  
-
 
 }
+
+var removeNs = function(record) {
+   return _.filter(record, function(r) {
+    return !(r.type == 'NS' && r.name == '@') 
+  });
+
+};
 
 exports.getForm = getForm;
 exports.getParam = getParam;
 exports.bodyParser = bodyParser;
 exports.uniqRecord = uniqRecord;
+exports.removeNs = removeNs;
 
 

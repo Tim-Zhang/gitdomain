@@ -1,7 +1,9 @@
 var fs = require('fs');
 fs.exists = fs.exists || require('path').exists;
+var rimraf = require('rimraf');
 var _ = require('underscore');
 var git = require('./git');
+var db = require('./db');
 
 var base_dir = git.base_dir;
 
@@ -12,22 +14,33 @@ var gitdir_exists = function(id, callback) {
   fs.exists(path(id), callback);
 };
 
-var updatefile = function(id, rep, callback) {
+var updatefile = function(id, rep, lastrep, callback) {
   gitdir_exists(id, function(exists) {
     if (exists) {
-      git.gitpull(id, callback);
+      if (lastrep && rep != lastrep) {
+        rimraf(path(id), function() {
+          db.updateLastRep(id, rep, function() {
+            git.gitclone(rep, id, callback);
+          });
+        });
+      } else {
+        git.gitpull(id, callback);
+      }
     } else {
       git.gitclone(rep, id, callback);
+      db.updateLastRep(id);
     }
   });
 }
+
+
 
 var process_domain = function(id, callback) {
   fs.readdir(path(id), function(err, files) {
     var domains = _.filter(files, function(f) {
       return f.charAt(0) !== ".";
     });
-    callback(domains);
+    callback(null, domains);
   })
 }
 
@@ -39,9 +52,9 @@ var get_records = function(id, domain_name, callback) {
       records = _.filter(records, function(r) {
         return r.trim();
       });
-      callback(records);
+      callback(null, records);
     } else {
-      console.log(err); 
+      callback(err);
     } 
   } );
 }
@@ -60,8 +73,8 @@ var analyse = function(line) {
 
 var gen_record = function(type, infos) {
   var record = {};
-  var model = ['sub_domain', 'value', 'record_type', 'ttl', 'mx'];
-  record.type = type;
+  var model = ['sub_domain', 'value', 'record_line', 'ttl', 'mx'];
+  record.record_type = type;
 
   _.each(model, function(m, i) {
     infos[i] && (record[m] = infos[i]);

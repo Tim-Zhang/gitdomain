@@ -1,41 +1,15 @@
 var _ = require('underscore') 
+  , async = require('async')
   , file = require('./file')
   , util = require('./util') 
   , domain = require('./domain') 
   , record = require('./record');
 
-var domain_handle = function(id, access_token, callback) {
-  file.process_domain(id, function(domains) {
-    domain.list(access_token, function(err, res, body) {
-      var body_domains = util.bodyParser(body, 'domains');
-      if (body_domains !== -1) {
-        var domains_ol = _.pluck(body_domains, 'name');
-        var domains_ol_obj = _.object(domains_ol, body_domains);
-        var more = _.difference(domains_ol, domains);
-        var less = _.difference(domains, domains_ol);
-        var intersection = _.intersection(domains, domains_ol);
 
-        domain_create(less, access_token, function(success_domain) {
-          _.extend(success_domain, body_domains);
-          _.filter(success_domain, function(s) {
-            return _.contains(intersection, s.name);
-          });
-          console.log(id, success_domain);
-          callback(success_domain);
-        });
-        var domain_ids = _.pluck(_.pick(domains_ol_obj, more), 'id');
-        domain_remove(domain_ids, access_token);
-      } else {
-        console.log(body);
-      }
-    });
-  
-  });
-
-};
 var domain_create = function(domains, access_token, callback) {
   var success_domain = [];
-  var oneback = _.after(domains.length, function() {
+  var times = domains && domains.length || 0;
+  var oneback = _.after(times, function() {
     callback(success_domain); 
   });
 
@@ -89,8 +63,8 @@ var records_create = function(records, access_token) {
 };
 
 var records_remove = function(domain_id, record_ids, access_token, callback) {
-  console.log('--------------------------------------');
-  var oneback = _.after(record_ids.length, function() {
+  var times = record_ids && record_ids.length || 0;
+  var oneback = _.after(times, function() {
     callback(); 
   });
   _.each(record_ids, function(id) {
@@ -105,50 +79,133 @@ var records_remove = function(domain_id, record_ids, access_token, callback) {
   
 };
 
-var records_handle = function(id, success_domain, access_token, callback) {
+var records_handle = function(id, access_token, success_domain, callback) {
 
+  console.log('rrrrrrrrrrrrrrrrrrrrrrr');
   _.each(success_domain, function(d) {   
-    file.get_records(id, d.name, function(lines) {
-      var records = gen_records(lines, d.id);
-      record.list(d.id, access_token, function(err, res, body) {
+    var records;
+    async.waterfall([
+      // get records from file
+      function(callback) {
+        file.get_records(id, d.name, function(err, lines) {
+          callback(err, lines);
+        })
+      },
+      // get records online
+      function(lines, callback) {
+        records = gen_records(lines, d.id);
+        record.list(d.id, access_token, function(err, res, body) {
+          callback(err, body);
+        });
+      },
+      // remove records
+      function(body, callback) {
         var records_ol = util.bodyParser(body, 'records');
-        console.log(records_ol);
         if (records_ol !== -1) {
+          records = util.removeNs(records);
+          records_ol = util.removeNs(records_ol);
           util.uniqRecord(records, records_ol);
+          console.log(records, records_ol);
           var records_ol_ids = _.pluck(records_ol, 'id');
-          console.log('its here');
           records_remove(d.id, records_ol_ids, access_token, function() {
-            records_create(records, access_token);  
-            console.log('remove done');
+            callback(null);
           });
-           
-
         }
-      
-      });
-      
-    });
+      },
+      // create records
+      function(callback) {
+        records_create(records, access_token);  
+      }
+        
+    ]);
+
   });
 
 };
 
-var main = function(id, rep, access_token) {
-  file.updatefile(id, rep, function() {
-    domain_handle(id, access_token, function(success_domain) {
-      console.log('success_domain');
-      console.log(success_domain);
-      console.log('---------------------');
-      records_handle(id, success_domain, access_token, function() {
-      
+var domains_handle = function(id, access_token, callback) {
+  var domains, success_domain;
+  async.waterfall([
+    // get domains from file
+    function(callback) {
+      file.process_domain(id, function(err, file_domains) {
+        domains = file_domains;
+        callback(null);
       });
-    });
+    },
+    // get domains online
+    function(callback) {
+      domain.list(access_token, function(err, res, body) {
+        var body_domains = util.bodyParser(body, 'domains');
+        callback(null, body_domains, body);
+      });
+    },
+    // create and remove domains
+    function(body_domains, body, callback) {
+      if (body_domains !== -1) {
+        var domains_ol, domains_ol_obj, more, less, intersection;
+        if (body_domains) {
+          domains_ol = _.pluck(body_domains, 'name');
+          domains_ol_obj = _.object(domains_ol, body_domains);
+          more = _.difference(domains_ol, domains);
+          less = _.difference(domains, domains_ol);
+          intersection = _.intersection(domains, domains_ol);
+        } else {
+          more = [];
+          less = domains;
+        }
 
+        var mother_callback = callback;
+        async.parallel([
+          function(callback) {
+            domain_create(less, access_token, function(sd) {
+              success_domain = sd;
+              _.extend(success_domain, body_domains);
+              _.filter(success_domain, function(s) {
+                return _.contains(intersection, s.name);
+              });
+              callback(null);
+            });
+          },
+          function(callback) {
+            var domain_ids = _.pluck(_.pick(domains_ol_obj, more), 'id');
+            domain_remove(domain_ids, access_token);
+            callback(null);
+          }
+        ], function(err, res) {
+          mother_callback(err, res);
+        });
+
+
+      } else {
+        callback(null, body);
+      }
+    }
+  ], function(err, result) {
+    callback(err, id, access_token, success_domain);
   });
 };
+
+exports.dnspod = function(id, rep, lastrep, access_token) {
+  async.waterfall([
+    function(callback) {
+      file.updatefile(id, rep, lastrep, function() {
+        callback(null, id, access_token);
+      });
+    },
+    domains_handle,
+    records_handle
+      
+  ], function() {
+
+  });
+
+};
+
 
 //test
 //
 
-var at = 'ce235eb5927cfe9ba5ada4fb6e565a3702341f3f';
-main(123, 'https://github.com/zewenzhang/dnsgit-test.git', at);
-
+//var at = '4225b088f9487435a807beb12c18b6ba64409941';
+//main(123, 'https://github.com/zewenzhang/dnsgit-test.git', at);
+//

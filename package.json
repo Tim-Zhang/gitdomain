@@ -11,6 +11,8 @@
     "mongoose": "*",
     "underscore": "*",
     "director": "*",
-    "string": "*"
+    "string": "*",
+    "async": "*",
+    "rimraf": "*"
   }
 }

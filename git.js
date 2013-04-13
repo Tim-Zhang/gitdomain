@@ -18,7 +18,6 @@ exports.gitclone = function(addr, id, callback) {
     console.log('stderr: ' + data);
   });
   gitclone.on('exit', function (code) {
-      console.log('gitclone done');
     if (code === 0) {
       console.log('git clone done');
       callback();
@@ -40,7 +39,6 @@ exports.gitpull = function(id, callback) {
     console.log('stderr: ' + data);
   });
   gitpull.on('exit', function (code) {
-      console.log('gitpull done');
     if (code === 0) {
       console.log('gitpull done');
       callback();
