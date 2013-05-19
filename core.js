@@ -231,6 +231,6 @@ exports.dnspod = function(id, rep, lastrep, access_token) {
 //test
 //
 
-var at = '20ddf7ef6b23ce36508d24c83671338297a82217';
-exports.dnspod(586691, 'https://github.com/zewenzhang/dnsgit-demo.git', 'https://github.com/zewenzhang/dnsgit-demo.git', at);
+//var at = '20ddf7ef6b23ce36508d24c83671338297a82217';
+//exports.dnspod(586691, 'https://github.com/zewenzhang/dnsgit-demo.git', 'https://github.com/zewenzhang/dnsgit-demo.git', at);
 

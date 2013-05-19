@@ -10,7 +10,8 @@ var http = require('http')
 
   function notify(id) {
     this.res.writeHead(200, { 'Content-Type': 'text/plain' })
-    if (this.req.headers['user-agent'] !== 'GitHub Hookshot 8678377') {
+    if (!/^GitHub\sHookshot/.test(this.req.headers['user-agent'])) {
+       console.info('access not from github');
        this.res.end('github only');
     } else {
        db.getUser(id, function(err, doc) {
@@ -18,7 +19,6 @@ var http = require('http')
 
          if (user && user.gitrep && user.access_token)  {
            core.dnspod(id, user.gitrep, user.lastrep, user.access_token); 
-           console.log(id, ': done');
          }
        }); 
        this.res.end(id + ': done');

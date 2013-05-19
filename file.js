@@ -20,9 +20,7 @@ var updatefile = function(id, rep, lastrep, callback) {
     if (exists) {
       if (lastrep && rep != lastrep) {
         rimraf(path(id), function() {
-          db.updateLastRep(id, rep, function() {
-            git.gitclone(rep, id, callback);
-          });
+          git.gitclone(rep, id, callback);
         });
       } else {
         git.gitpull(id, callback);
@@ -31,6 +29,7 @@ var updatefile = function(id, rep, lastrep, callback) {
       git.gitclone(rep, id, callback);
       db.updateLastRep(id);
     }
+    db.updateLastRep(id, rep, function() {});
   });
 }
 
@@ -80,6 +79,7 @@ var gen_record = function(type, infos) {
   _.each(model, function(m, i) {
     infos[i] && (record[m] = infos[i]);
   });
+  record.record_line = record.record_line || '默认';
   return record;
 
 }
