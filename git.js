@@ -5,8 +5,8 @@ var base_dir = '/tmp/dnsgit/';
 
 exports.base_dir = base_dir;
 exports.gitclone = function(addr, id, callback) {
-  var gitclone = spawn('git', ['clone', addr, id], { cwd: base_dir, env: process.env});
-  gitclone.on('close', function (code) {
+  var git_clone = spawn('git', ['clone', addr, id], { cwd: base_dir, env: process.env});
+  git_clone.on('close', function (code) {
     if (code === 0) {
       callback();
     } else {
@@ -14,10 +14,10 @@ exports.gitclone = function(addr, id, callback) {
     }
   });
 
-  gitclone.stderr.on('data', function (data) {
+  git_clone.stderr.on('data', function (data) {
     console.log('stderr: ' + data);
   });
-  gitclone.on('exit', function (code) {
+  git_clone.on('exit', function (code) {
     if (code === 0) {
       console.log('git clone done');
       callback();
@@ -29,16 +29,16 @@ exports.gitclone = function(addr, id, callback) {
 
 exports.gitpull = function(id, callback) {
   var dir = base_dir + id;
-  var gitpull = spawn('git', ['pull'], { cwd: dir, env: process.env});
+  var git_pull = spawn('git', ['pull'], { cwd: dir, env: process.env});
   console.log('gitpull start');
-  gitpull.stdout.on('data', function (data) {
+  git_pull.stdout.on('data', function (data) {
     console.log('stdout: ' + data);
   });
 
-  gitpull.stderr.on('data', function (data) {
+  git_pull.stderr.on('data', function (data) {
     console.log('stderr: ' + data);
   });
-  gitpull.on('exit', function (code) {
+  git_pull.on('exit', function (code) {
     if (code === 0) {
       console.log('gitpull done');
       callback();

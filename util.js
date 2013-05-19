@@ -46,8 +46,16 @@ var getParam = function(action, type, form) {
   return params;
 };
 
-var valid_record = function(record) {
+var validRecord = function(record) {
   return (record && typeof record === "object" && _.size(record) > 2);
+}
+
+var validDomain = function(domain) {
+  var conditions = [
+    domain.charAt(0) !== '.',
+    domain.toLowerCase() !== 'readme.md'
+  ];
+  return _.every(conditions, function(c) {return c});
 }
 
 var bodyParser = function(body, key) {
@@ -71,7 +79,8 @@ var bodyParser = function(body, key) {
 
 var uniqRecord = function(r1, r2) {
   if (!r1 || !r2) return;
-  var model = {
+  var r1_ret = _.clone(r1), r2_ret = _.clone(r2);
+  var map = {
     sub_domain: 'name',
     value: 'value',
     record_type: 'type',
@@ -85,20 +94,26 @@ var uniqRecord = function(r1, r2) {
 
   var exists = [];
   for (var i=0; i<r1.length; i++) {
+    var is_equal;
     for (var j=0; j<r2.length; j++) {
-      var rr1 = r1[i];
-      var rr2 = r2[j];
-      var is_equal = _.every(_.keys(model), function(m) {
-        return !(rr1[m] && rr1[m] != rr2[model.m]); 
+      var rr1 = r1[i]
+      var rr2 = r2[j]
+      is_equal = _.every(_.keys(map), function(m) {
+        var cmp1 = rr1[m];
+        var cmp2 = rr2[map[m]];
+        return cmp1 === undefined || cmp2 === undefined || cmp1.toLowerCase() == cmp2.toLowerCase(); 
       });
       if (is_equal) {
-        r1 = _.without(r1, rr1);
-        r2 = _.without(r2, rr2);
+        break;
       }
+    }
+    if (is_equal) {
+      r1_ret = _.without(r1_ret, rr1);
+      r2_ret = _.without(r2_ret, rr2);
     }
   }
   
-
+  return [r1_ret, r2_ret];
 }
 
 var removeNs = function(record) {
@@ -113,5 +128,7 @@ exports.getParam = getParam;
 exports.bodyParser = bodyParser;
 exports.uniqRecord = uniqRecord;
 exports.removeNs = removeNs;
+exports.validDomain = validDomain;
+exports.validRecord = validRecord;
 
 

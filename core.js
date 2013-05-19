@@ -31,7 +31,6 @@ var domain_create = function(domains, access_token, callback) {
 var domain_remove = function(domain_ids, access_token, callback) {
   _.each(domain_ids, function(id) {
     domain.remove(id, access_token, function(err, res, body) {
-      console.log(body);
       //TODO
       //weixin notice on error
     });
@@ -49,17 +48,22 @@ var gen_records = function(lines, domain_id) {
   return records;
 };
 
-var records_create = function(records, access_token) {
-  _.each(records, function(r) {
-    console.log(r);
-    record.create(r, access_token, function(err, res, body) {
-      if (err) {
-        //TODO 
-        //weixin notice
-      }
-      console.log(body);
+var records_create = function(records, access_token, callback) {
+  if (records && records.length) {
+    _.each(records, function(r) {
+      record.create(r, access_token, function(err, res, body) {
+        console.info('record create...');
+        callback(err);
+        console.info(err || body);
+        if (err) {
+          //TODO 
+          //weixin notice
+        }
+      });
     });
-  })
+  } else {
+    callback(null); 
+  }
 };
 
 var records_remove = function(domain_id, record_ids, access_token, callback) {
@@ -69,6 +73,8 @@ var records_remove = function(domain_id, record_ids, access_token, callback) {
   });
   _.each(record_ids, function(id) {
     record.remove(domain_id, id, access_token, function(err, res, body) {
+      console.info('record remove..');
+      console.info(err || body);
       if (err) {
         //TODO 
         //weixin notice
@@ -79,52 +85,61 @@ var records_remove = function(domain_id, record_ids, access_token, callback) {
   
 };
 
-var records_handle = function(id, access_token, success_domain, callback) {
-
-  console.log('rrrrrrrrrrrrrrrrrrrrrrr');
-  _.each(success_domain, function(d) {   
-    var records;
-    async.waterfall([
-      // get records from file
-      function(callback) {
-        file.get_records(id, d.name, function(err, lines) {
-          callback(err, lines);
-        })
-      },
-      // get records online
-      function(lines, callback) {
-        records = gen_records(lines, d.id);
-        record.list(d.id, access_token, function(err, res, body) {
-          callback(err, body);
-        });
-      },
-      // remove records
-      function(body, callback) {
-        var records_ol = util.bodyParser(body, 'records');
-        if (records_ol !== -1) {
-          records = util.removeNs(records);
-          records_ol = util.removeNs(records_ol);
-          util.uniqRecord(records, records_ol);
-          console.log(records, records_ol);
-          var records_ol_ids = _.pluck(records_ol, 'id');
-          records_remove(d.id, records_ol_ids, access_token, function() {
-            callback(null);
+var record_handle_factory = function(id, access_token) {
+  return function(d, main_callback) {
+      var records;
+      async.waterfall([
+        // get records from file
+        function(callback) {
+          file.get_records(id, d.name, function(err, lines) {
+            callback(err, lines);
+          })
+        },
+        // get records online
+        function(lines, callback) {
+          records = gen_records(lines, d.id);
+          record.list(d.id, access_token, function(err, res, body) {
+            callback(err, body);
           });
+        },
+        // remove records
+        function(body, callback) {
+          var records_ol = util.bodyParser(body, 'records');
+          if (records_ol !== -1) {
+            records = util.removeNs(records);
+            records_ol = util.removeNs(records_ol);
+            var uniq_result = util.uniqRecord(records, records_ol);
+            records = uniq_result[0];
+            records_ol = uniq_result[1];
+            var records_ol_ids = _.pluck(records_ol, 'id');
+            records_remove(d.id, records_ol_ids, access_token, function() {
+              callback(null);
+            });
+          }
+        },
+        // create records
+        function(callback) {
+          records_create(records, access_token, callback);  
         }
-      },
-      // create records
-      function(callback) {
-        records_create(records, access_token);  
-      }
-        
-    ]);
+          
+      ], function(err, result) {
+        main_callback(err, result);
+      });
 
+  };
+}
+var records_handle = function(id, access_token, success_domain, callback) {
+  console.info('records handleing...');
+  var record_handle = record_handle_factory(id, access_token);
+  async.map(success_domain, record_handle, function(err, result) {
+    callback(err, result);
   });
 
 };
 
 var domains_handle = function(id, access_token, callback) {
   var domains, success_domain;
+  console.info('domains handleing...');
   async.waterfall([
     // get domains from file
     function(callback) {
@@ -136,8 +151,12 @@ var domains_handle = function(id, access_token, callback) {
     // get domains online
     function(callback) {
       domain.list(access_token, function(err, res, body) {
-        var body_domains = util.bodyParser(body, 'domains');
-        callback(null, body_domains, body);
+        try {
+          var body_domains = util.bodyParser(body, 'domains');
+          callback(null, body_domains, body);
+        } catch(err) {
+          callback(err);
+        }
       });
     },
     // create and remove domains
@@ -196,8 +215,14 @@ exports.dnspod = function(id, rep, lastrep, access_token) {
     domains_handle,
     records_handle
       
-  ], function() {
-
+  ], function(err, res) {
+    if (err) {
+      console.info('******** main process has an error ********');
+      console.info(err);
+      console.info('******** main process has an error ********');
+    } else {
+      console.info('******** [id:' + id + '] operation has all done ********');
+    }
   });
 
 };
@@ -206,6 +231,6 @@ exports.dnspod = function(id, rep, lastrep, access_token) {
 //test
 //
 
-//var at = '4225b088f9487435a807beb12c18b6ba64409941';
-//main(123, 'https://github.com/zewenzhang/dnsgit-test.git', at);
-//
+var at = '20ddf7ef6b23ce36508d24c83671338297a82217';
+exports.dnspod(586691, 'https://github.com/zewenzhang/dnsgit-demo.git', 'https://github.com/zewenzhang/dnsgit-demo.git', at);
+

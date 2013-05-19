@@ -4,6 +4,7 @@ var rimraf = require('rimraf');
 var _ = require('underscore');
 var git = require('./git');
 var db = require('./db');
+var util = require('./util');
 
 var base_dir = git.base_dir;
 
@@ -38,7 +39,7 @@ var updatefile = function(id, rep, lastrep, callback) {
 var process_domain = function(id, callback) {
   fs.readdir(path(id), function(err, files) {
     var domains = _.filter(files, function(f) {
-      return f.charAt(0) !== ".";
+      return util.validDomain(f);
     });
     callback(null, domains);
   })
