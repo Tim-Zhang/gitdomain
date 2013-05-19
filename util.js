@@ -1,6 +1,7 @@
 var querystring = require('querystring')
   , S = require('string')
-  , _ = require('underscore');
+  , _ = require('underscore')
+  , _s = require('underscore.string');
 
 var getUrl = function(action, type) {
   var baseUrl = 'https://dnsapi.cn/';
@@ -101,7 +102,7 @@ var uniqRecord = function(r1, r2) {
       is_equal = _.every(_.keys(map), function(m) {
         var cmp1 = rr1[m];
         var cmp2 = rr2[map[m]];
-        return cmp1 === undefined || cmp2 === undefined || cmp1.toLowerCase() == cmp2.toLowerCase(); 
+        return cmp1 === undefined || cmp2 === undefined || filterV(cmp1) == filterV(cmp2); 
       });
       if (is_equal) {
         break;
@@ -121,6 +122,12 @@ var removeNs = function(record) {
     return !(r.type == 'NS' && r.name == '@') 
   });
 
+};
+
+var filterV = function(v) {
+  var v = v.toLowerCase();
+  v = _s.trim(v, '.');
+  return v;
 };
 
 exports.getForm = getForm;

@@ -13,6 +13,7 @@
     "director": "*",
     "string": "*",
     "async": "*",
-    "rimraf": "*"
+    "rimraf": "*",
+    "underscore.string": "~2.3.1"
   }
 }

@@ -48,21 +48,23 @@ var gen_records = function(lines, domain_id) {
   return records;
 };
 
-var records_create = function(records, access_token, callback) {
+var records_create = function(records, access_token, main_callback) {
   if (records && records.length) {
-    _.each(records, function(r) {
+    async.map(records, function(r, callback) {
       record.create(r, access_token, function(err, res, body) {
         console.info('record create...');
-        callback(err);
         console.info(err || body);
+        callback(err);
         if (err) {
           //TODO 
           //weixin notice
         }
       });
+    }, function(err, res) {
+      main_callback(err); 
     });
   } else {
-    callback(null); 
+    main_callback(null); 
   }
 };
 
@@ -178,11 +180,11 @@ var domains_handle = function(id, access_token, callback) {
         async.parallel([
           function(callback) {
             domain_create(less, access_token, function(sd) {
-              success_domain = sd;
-              _.extend(success_domain, body_domains);
-              _.filter(success_domain, function(s) {
+              success_domain = body_domains;
+              success_domain = _.filter(success_domain, function(s) {
                 return _.contains(intersection, s.name);
               });
+              success_domain = _.union(success_domain, sd);
               callback(null);
             });
           },
@@ -231,6 +233,6 @@ exports.dnspod = function(id, rep, lastrep, access_token) {
 //test
 //
 
-//var at = '20ddf7ef6b23ce36508d24c83671338297a82217';
-//exports.dnspod(586691, 'https://github.com/zewenzhang/dnsgit-demo.git', 'https://github.com/zewenzhang/dnsgit-demo.git', at);
+var at = 'bf55d4b7e9beea5535e7abf9472811ec3f9e56dc';
+exports.dnspod(586691, 'https://github.com/zewenzhang/dnsgit-demo.git', 'https://github.com/zewenzhang/dnsgit-demo.git', at);
 
