@@ -4,16 +4,22 @@
   "private": "true",
   "author": "Tim Zhang",
   "scripts": {
-    "start": "node app"
+    "start": "n use v0.12.2 --harmony index"
   },
   "dependencies": {
-    "request": "*",
-    "mongoose": "*",
-    "underscore": "*",
-    "director": "*",
-    "string": "*",
     "async": "*",
-    "rimraf": "*",
+    "backbone-rethinkdb": "^0.3.3",
+    "director": "*",
+    "fs-extra": "^0.18.1",
+    "js-yaml": "^3.2.7",
+    "koa": "^0.18.1",
+    "koa-route": "^2.4.0",
+    "mongoose": "*",
+    "nodegit": "^0.4.1",
+    "request": "*",
+    "string": "*",
+    "thunkify": "^2.1.2",
+    "underscore": "*",
     "underscore.string": "~2.3.1"
   }
 }

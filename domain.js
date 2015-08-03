@@ -1,61 +1,163 @@
-var request = require('request')
-  , _ = require('underscore')
-  , querystring = require('querystring')
-  , util = require('./util')
-  , db = require('./db');
+var Backbone = require( 'backbone-rethinkdb' )
+  , _        = require('underscore')
+  , Record   = require('./Record')
 
-var type = 'domain';
+var __domainClass = {};
+var __defaultExt = 'yml';
 
-exports.create = function(domain_name, access_token, callback) {
-  var action = 'create';
-  var form = util.getForm(access_token, {
-    domain: domain_name
-  });
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
-exports.remove = function(domain_id, access_token, callback) {
-  var action = 'remove';
-  var form = util.getForm(access_token, {
-    domain_id: domain_id 
-  });
-  var params = util.getParam(action, type, form);
-  request(params, callback);
+var RecordCollection = Backbone.Collection.extend({
+  model: Record
+});
 
-};
+module.exports = Backbone.Model.extend({
+  idAttribute: 'name'
+  , __isNew: false
 
-exports.info = function(domain, access_token, callback) {
-  var action = 'info';
-  var form = util.getForm(access_token, {
-    domain: domain 
-  });
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
+  , initialize: function(models, options) {
+    this.onlineRecords = new RecordCollection()
+    this.localRecords = new RecordCollection()
 
-exports.list = function(access_token, callback) {
-  var action = 'list';
-  var form = util.getForm(access_token, {
-    type: "all"
-  });
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
+    this.localRecords.domain = this.onlineRecords.domain = this
+    this.localRecords.api = this.onlineRecords.api = _.bind(this.api, this)
+  }
 
-// test 
+  , user: function() {
+    return this.collection.user;
+  }
+
+  , api: function() {
+    return this.collection.api;
+  }
+
+  , perform: function* () {
+    console.log('Domain perform start')
+    yield this.deserialize();
+    yield this.fetch();
+
+    this.diff();
+
+    yield this.removeR();
+    yield this.createR();
+    console.log('Domain perform done')
+
+  }
+
+  , diff: function() {
+    var that = this;
+    this.localRecords.each(function(lr) {
+      var or = that.onlineRecords.get(lr.id)
+      if ( or ) {
+          lr.set('id', or.get('id'))
+          that.onlineRecords.remove(or);
+      }
+    });
+    this.ignoreHoldRecords();
+  }
+
+  // DNSPod Logic
+  // Ignore initial NS records like 'f1g1ns1.dnspod.net.'
+  , ignoreHoldRecords: function() {
+    var needRemove = []
+
+    this.onlineRecords.each(function(record) {
+      if (record.get('hold') === 'hold') needRemove.push(record)
+    });
+
+    this.onlineRecords.remove(needRemove)
+  }
+
+  , serialize: function() {
+
+  }
+
+  , deserialize: function* () {
+
+  }
+
+  , fetch: function* () {
+    try{
+    onlineRecords = yield this.api().listRecord(this.get('id'));
+  }catch(e) {
+    console.log(this.attributes)
+    console.log( 'listRecord exception:', e )
+  }
+    this.onlineRecords.reset(onlineRecords);
+  }
+
+  , create: function* () {
+    if ( !this.isNew() ) return;
+    createInfo = yield this.api().createDomain(this.get('name'));
+    this.set('id', createInfo.id);
+    this.unsetNew();
+    return createInfo;
+  }
+
+  , remove: function* () {
+    return yield this.api().removeDomain(this.id);
+  }
+
+  , createR: function* () {
+    return yield this.localRecords.invoke('create');
+  }
+
+  , removeR: function* () {
+    return yield this.onlineRecords.invoke('remove');
+  }
+
+  , isNew: function() {
+    return this.__isNew;
+  }
+
+  , setNew: function() {
+    this.__isNew = true;
+  }
+
+  , unsetNew: function() {
+    this.__isNew = false;
+  }
+
+  , getFullFilename: function() {
+    return this.get('path') + '/' + this.get('filename');
+  }
 
 
-//var at = '2e6db7279eaf7eb65b8eae2fb017bfaf60e4ef84';
-//var tc = function(err, res, body) {
-//  console.log(body);
-//  process.exit();
-//};
+}, {
+    ext: null
+  , extend: function(protoProps, staticProps) {
+    var child = Backbone.Collection.extend.apply(this, arguments);
+    this.register(staticProps.ext, child);
+    return child;
+  }
 
-//exports.list(at, tc);
+  , register: function(ext, obj) {
+    __domainClass[ext] = obj;
+  }
 
-//exports.create('woaiderenyeaiwo.com', at, tc);
+  , findClass: function(ext) {
+    return __domainClass[ext];
+  }
 
-//exports.info('woaiderenyeaiwo.com', at, tc);
+  , isValid: function(name) {
+    var conditions = [
+        name.charAt(0) !== '.',
+        name.toLowerCase() !== 'readme.md'
+    ];
+    return _.every(conditions, function(c) {return c});
+  }
 
-//exports.remove(3201407, at, tc);
+  , getPureDomain: function(name) {
+    return name.slice(0, name.lastIndexOf('.'));
+  }
 
+  , findClassByDomainName: function(name) {
+    var ext = this.getExt(name);
+    var extClass = this.findClass(ext);
+    if (!extClass) extClass = this.findClass(__defaultExt);
+    return extClass;
+  }
+
+  , getExt: function(name) {
+    return name.split('.').pop();
+  }
+
+});

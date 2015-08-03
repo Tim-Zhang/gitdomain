@@ -1,82 +1,102 @@
-var request = require('request')
-  , querystring = require('querystring')
-  , _ = require('underscore')
-  , util = require('./util')
-  , db = require('./db');
+var Backbone = require( 'backbone-rethinkdb' ),
+    _        = require('underscore'),
+    GD       = require('./GD')
 
-var type = 'record';
+module.exports = Backbone.Model.extend({
+    idAttribute: 'gid',
 
-exports.create = function(record, access_token, callback) {
-  var action = 'create';
-  var form = util.getForm(access_token, record);
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
-exports.remove = function(domain_id, record_id, access_token, callback) {
-  var action = 'remove';
-  var form = util.getForm(access_token, {
-    domain_id: domain_id,
-    record_id: record_id
-  });
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
+    defaults: {
+        name: '',
+        type: 'A',
+        line: '默认',
+        value: '',
+        mx  : 5,
+        ttl : 600
+    },
 
-exports.modify = function(record, access_token, callback) {
-  var action = 'modify';
-  var form = util.getForm(access_token, record);
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
+    constructor: function(attr, options) {
+        // Uppercase type
+        attr.type = attr.type.toUpperCase()
 
-exports.info = function(domain, access_token, callback) {
-  var action = 'info';
-  var form = util.getForm(access_token, {
-    domain: domain 
-  });
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
+        attr.gid = this.getId(attr)
+        Backbone.Model.apply(this, arguments);
+    },
 
-exports.list = function(domain_id, access_token, callback) {
-  var action = 'list';
-  var form = util.getForm(access_token, {
-    domain_id: domain_id 
-  });
-  var params = util.getParam(action, type, form);
-  request(params, callback);
-};
+    initialize: function(attributes, options) {
+        //options && (this.domain = options.domain);
+        this.on('change', this.setId, this);
+    },
 
-// test 
+    validate: function() {
+        return null;
+    },
 
+    getId: function(attr) {
+        attr = attr || this.attributes
 
-//var at = '2e6db7279eaf7eb65b8eae2fb017bfaf60e4ef84';
-//var tc = function(err, res, body) {
-//  console.log(body);
-//  process.exit();
-//};
-//
-//var record_id = 21863470;
-//var domain_id = 3201512;
-//
-//var record = {
-//  domain_id: domain_id,
-//  record_id: record_id,
-//  sub_domain: 'test2',
-//  record_type: 'A',
-//  record_line: '默认',
-//  value: '9.9.9.99'
-//};
+        var seq = [ 'name', 'type', 'line', 'value', 'MX', 'ttl' ]
+           , idString = ''
+           , that = this;
 
-//exports.list(3201512, at, tc);
+        _.each(seq, function(key) {
+            if ( key === 'MX' && attr.type !== 'MX' ) return;
 
+            idString += attr[key];
+        });
 
-//exports.create(record, at, tc);
+        return GD.md5(idString);
+    },
 
-//exports.info('woaiderenyeaiwo.com', at, tc);
+    setId: function() {
+      Backbone.Model.prototype.set.call( this, {gid: this.getId()} );
+    },
 
-//exports.remove(domain_id, record_id, at, tc);
+    toJSON: function() {
+        var json = {
+            domain_id   : this.domain().get('id'),
+            sub_domain  : this.get('name'),
+            record_type : this.get('type'),
+            record_line : this.get('line'),
+            value       : this.get('value'),
+            mx          : this.get('mx'),
+            ttl         : this.get('ttl')
+        }
 
-//exports.modify(record, at, tc);
+        if ( this.get('type') !== 'MX' ) {
+            delete json.mx;
+        }
 
+        return json;
+    }
 
+    , api: function() {
+        return this.collection.api();
+    }
+    , domain: function() {
+        return this.collection.domain;
+    }
+
+    , create: function* () {
+        if (this.get('id')) return;
+
+        try {
+        createInfo = yield this.api().createRecord(this.toJSON());
+        } catch(e) {
+            console.log(e)
+        }
+        this.set('id', createInfo.id)
+
+        return createInfo;
+    },
+
+    remove: function* () {
+        removeInfo = yield this.api().removeRecord(this.domain().get('id'), this.get('id'));
+        this.destroy();
+        return removeInfo;
+    },
+
+    info: function() {
+
+    }
+
+});
