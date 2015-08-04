@@ -25,7 +25,7 @@ function* hook(id) {
     var user = new User({ did: id });
     yield user.fetch();
     yield new Repo({ user: user }).perform();
-    this.code = 200;
+    this.status = 200;
 }
 
 
